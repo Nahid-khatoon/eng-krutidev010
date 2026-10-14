@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRUTI DEV 010 DOCUMENT CONVERTER — English to Hindi & Kruti Dev 010</title>
+    <meta name="description" content="Translate English documents into Hindi and convert them into editable Kruti Dev 010 Word documents while preserving original formatting.">
+    <link rel="stylesheet" href="/src/styles/index.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F59E0B'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation Header -->
+        <header class="navbar">
+            <div class="nav-brand" id="brand-home-btn">
+                <div class="brand-icon">KD</div>
+                <div class="brand-text">
+                    <h1>KRUTI DEV 010 DOCUMENT CONVERTER <span class="brand-badge">PRO</span></h1>
+                    <div class="brand-tagline">English to Hindi. Hindi to Kruti Dev 010. Preserve Every Word. Preserve Every Format.</div>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <button class="btn btn-secondary" id="open-dictionary-btn" title="Technical Dictionary">
+                    <span id="dict-icon">📖</span> Railway Glossary
+                </button>
+                <button class="btn btn-secondary" id="open-settings-btn" title="Conversion Settings">
+                    <span id="settings-icon">⚙️</span> Settings
+                </button>
+                <button class="btn btn-ghost btn-icon" id="theme-toggle-btn" title="Toggle Theme">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                <button class="btn btn-primary" id="start-conversion-top-btn">
+                    <span>⚡</span> Start Conversion
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- 1. Hero Section -->
+            <section class="hero-section">
+                <div class="hero-pill">
+                    <span>🚆</span> OFFICIAL INDIAN RAILWAYS COMPLIANT CONVERTER
+                </div>
+                <h2 class="hero-title">
+                    Convert English Documents into <span class="gradient-text">Kruti Dev 010</span>
+                </h2>
+                <p class="hero-subtitle">
+                    Translate English documents into Hindi and convert them into editable Kruti Dev 010 Word documents while preserving original formatting.
+                </p>
+
+                <!-- Hero Action Buttons -->
+                <div class="hero-actions">
+                    <button class="btn btn-primary" id="hero-upload-pdf-btn">
+                        <span>📄</span> Upload PDF
+                    </button>
+                    <button class="btn btn-primary" id="hero-upload-word-btn">
+                        <span>📝</span> Upload Word
+                    </button>
+                    <button class="btn btn-secondary" id="hero-paste-text-btn">
+                        <span>📋</span> Paste Text
+                    </button>
+                    <button class="btn btn-accent" id="hero-start-convert-btn">
+                        <span>⚡</span> Start Conversion
+                    </button>
+                </div>
+
+                <!-- Hidden Native File Inputs -->
+                <input type="file" id="file-input-pdf" accept=".pdf" style="display: none;">
+                <input type="file" id="file-input-word" accept=".docx,.doc" style="display: none;">
+                <input type="file" id="file-input-any" accept=".pdf,.docx,.doc,.txt" style="display: none;">
+
+                <!-- Drag & Drop Upload Zone -->
+                <div class="upload-card" id="drop-zone">
+                    <div id="drop-zone-prompt">
+                        <div class="upload-icon-wrapper">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <h3 class="upload-heading">Drag & Drop Documents Here or Browse</h3>
+                        <p class="upload-subtext">Supports Microsoft Word (.docx, .doc), PDF (.pdf), and Plain Text (.txt)</p>
+                        <div class="upload-chips">
+                            <span class="upload-chip">📄 .DOCX (Mandatory)</span>
+                            <span class="upload-chip">📑 .PDF (Multi-page 200+ pages)</span>
+                            <span class="upload-chip">📝 .TXT</span>
+                            <span class="upload-chip">🔒 100% Client-Side Private</span>
+                        </div>
+                    </div>
+
+                    <!-- File Active State Metadata Card -->
+                    <div id="file-active-card" class="file-active-info" style="display: none;">
+                        <div class="file-meta">
+                            <div class="file-name" id="active-file-name">document.docx</div>
+                            <div class="file-details" id="active-file-details">124 KB • 24 Pages • DOCX</div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary" id="replace-file-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                Replace
+                            </button>
+                            <button class="btn btn-ghost" id="remove-file-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; color: #EF4444;">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 27. Required Test Cases Quick-Load Bar -->
+                <div class="test-suite-bar">
+                    <div class="test-suite-header">
+                        <div class="test-suite-title">
+                            <span>🧪</span> Required Test Cases (1-Click Validation)
+                        </div>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">Click any test to load instantly into workspace</span>
+                    </div>
+                    <div class="test-chips-grid">
+                        <button class="test-chip" data-test="1">
+                            <strong>Test 1:</strong> Station Master → स्टेशन मास्टर
+                        </button>
+                        <button class="test-chip" data-test="2">
+                            <strong>Test 2:</strong> 505AXT → 505ए.एक्स.टी.
+                        </button>
+                        <button class="test-chip" data-test="3">
+                            <strong>Test 3:</strong> 505BXT → 505बी.एक्स.टी.
+                        </button>
+                        <button class="test-chip" data-test="4">
+                            <strong>Test 4:</strong> DP519A → डी.पी.519ए
+                        </button>
+                        <button class="test-chip" data-test="5">
+                            <strong>Test 5:</strong> ODP507A → ओ.डी.पी.507ए
+                        </button>
+                        <button class="test-chip" data-test="6">
+                            <strong>Test 6:</strong> S9AXT → एस9ए.एक्स.टी.
+                        </button>
+                        <button class="test-chip" data-test="7">
+                            <strong>Test 7:</strong> Chapter VI para 6.02(iv)
+                        </button>
+                        <button class="test-chip" data-test="8">
+                            <strong>Test 8:</strong> Date of Issue:-
+                        </button>
+                        <button class="test-chip" data-test="9">
+                            <strong>Test 9:</strong> Section/Line
+                        </button>
+                        <button class="test-chip" data-test="10">
+                            <strong>Test 10:</strong> Full Railway Circular (Bold, Underline, Table)
+                        </button>
+                        <button class="test-chip" data-test="50" style="border-color: rgba(99, 102, 241, 0.4);">
+                            <strong>⚡ Large PDF:</strong> 50 Pages (Batched Queue)
+                        </button>
+                        <button class="test-chip" data-test="222" style="border-color: rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.1);">
+                            <strong>🔥 Section 5 Test:</strong> 222 Pages Complete
+                        </button>
+                        <button class="test-chip" data-test="300" style="border-color: rgba(16, 185, 129, 0.5);">
+                            <strong>🚀 Full PDF:</strong> 300+ Pages Support
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Conversion Workspace -->
+            <section class="workspace-section" id="workspace-section">
+                <!-- Large Document Processing Dashboard (Multi-Page 50..300+ Pages) -->
+                <div id="large-doc-dashboard" class="large-doc-dashboard" style="display: none;">
+                    <div class="dashboard-header">
+                        <div class="dashboard-title">
+                            <span>📑</span> Multi-Page Document Batch Processor
+                            <span class="panel-badge badge-kruti" id="dash-mode-badge">Queue Active</span>
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary);">
+                            Asynchronous Non-Blocking Engine • Persistent Intermediate Storage
+                        </div>
+                    </div>
+
+                    <!-- 4 Stat Cards Required by Prompt -->
+                    <div class="doc-stats-grid">
+                        <div class="stat-card stat-total">
+                            <span class="stat-label">PDF Pages</span>
+                            <span class="stat-value" id="stat-total-pages">0</span>
+                            <span class="stat-subtext">Total document pages</span>
+                        </div>
+                        <div class="stat-card stat-extracted">
+                            <span class="stat-label">Extracted Pages</span>
+                            <span class="stat-value" id="stat-extracted-pages">0</span>
+                            <span class="stat-subtext">Geometry text reconstructed</span>
+                        </div>
+                        <div class="stat-card stat-translated">
+                            <span class="stat-label">Translated Pages</span>
+                            <span class="stat-value" id="stat-translated-pages">0</span>
+                            <span class="stat-subtext">Hindi Unicode with railway glossary</span>
+                        </div>
+                        <div class="stat-card stat-encoded">
+                            <span class="stat-label">Kruti Encoded Pages</span>
+                            <span class="stat-value" id="stat-encoded-pages">0</span>
+                            <span class="stat-subtext">Verified legacy 8-bit glyphs</span>
+                        </div>
+                    </div>
+
+                    <!-- Queue Progress Bar & Page Counter -->
+                    <div class="queue-progress-bar-container">
+                        <div class="queue-progress-meta">
+                            <span id="queue-current-page-text">Current Page: 0 of 0</span>
+                            <span id="queue-percentage-text" style="color: var(--accent-amber);">0%</span>
+                        </div>
+                        <div class="queue-track">
+                            <div class="queue-fill" id="queue-progress-fill"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.4rem; font-size: 0.75rem; color: var(--text-secondary);">
+                            <span id="queue-stage-desc">Preparing page batches...</span>
+                            <span id="queue-batch-info">Batch Size: 5 pages</span>
+                        </div>
+                    </div>
+
+                    <!-- Queue Control Action Buttons -->
+                    <div class="queue-controls-bar">
+                        <div class="queue-action-buttons">
+                            <button class="btn btn-secondary" id="queue-pause-btn" style="padding: 0.45rem 0.85rem; font-size: 0.82rem;">
+                                <span>⏸️</span> Pause Processing
+                            </button>
+                            <button class="btn btn-primary" id="queue-resume-btn" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; display: none;">
+                                <span>▶️</span> Resume Processing
+                            </button>
+                            <button class="btn btn-ghost" id="queue-cancel-btn" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; color: #EF4444;">
+                                <span>⏹️</span> Cancel
+                            </button>
+                            <button class="btn btn-secondary" id="queue-retry-failed-btn" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; display: none;">
+                                <span>🔄</span> Retry Failed Pages (<span id="failed-pages-count">0</span>)
+                            </button>
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-secondary);" id="queue-live-status">
+                            All pages processed asynchronously in persistent storage
+                        </div>
+                    </div>
+
+                    <!-- Pre-Download Quality Gate Banner -->
+                    <div class="quality-validation-banner in-progress" id="quality-banner">
+                        <div class="validation-text">
+                            <span id="quality-icon">⏳</span>
+                            <span id="quality-message">Processing in progress. Downloads will unlock when all pages are 100% processed and verified.</span>
+                        </div>
+                        <span id="quality-badge" class="panel-badge" style="background: rgba(0,0,0,0.3);">Validating</span>
+                    </div>
+
+                    <!-- Interactive Page Matrix View -->
+                    <div class="page-matrix-section">
+                        <div class="page-matrix-header">
+                            <span class="page-matrix-title">Interactive Page Matrix (1 to 300+ Pages)</span>
+                            <div class="page-matrix-legend">
+                                <span class="legend-item"><span class="legend-dot pending"></span> Pending</span>
+                                <span class="legend-item"><span class="legend-dot progress"></span> In Progress</span>
+                                <span class="legend-item"><span class="legend-dot ready"></span> Ready</span>
+                                <span class="legend-item"><span class="legend-dot failed"></span> Failed (Click to retry)</span>
+                            </div>
+                        </div>
+                        <div class="page-matrix-grid" id="page-matrix-grid">
+                            <!-- Page tiles generated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toolbar with Find & Replace & Download -->
+                <div class="workspace-toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn-secondary" id="toggle-find-replace-btn">
+                            <span>🔍</span> Find & Replace
+                        </button>
+                        <button class="btn btn-primary" id="regenerate-kruti-btn">
+                            <span>🔄</span> GENERATE KRUTI DEV AGAIN
+                        </button>
+                        <button class="btn btn-secondary" id="run-calibration-btn" title="Run Calibration Test (Section 5)">
+                            <span>🔬</span> Calibration Test
+                        </button>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);" id="doc-status-indicator">
+                            Ready
+                        </span>
+                    </div>
+
+                    <div class="toolbar-right">
+                        <!-- Download Dropdown Trigger -->
+                        <div style="position: relative;">
+                            <button class="btn btn-accent" id="download-dropdown-btn">
+                                <span>📥</span> Download Document ▼
+                            </button>
+                            <!-- Download Menu -->
+                            <div id="download-dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 6px; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); z-index: 100; min-width: 280px; overflow: hidden;">
+                                <div style="padding: 0.5rem 0.85rem; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; background: var(--bg-tertiary);">
+                                    Word (.DOCX) - Editable
+                                </div>
+                                <button class="download-item-btn" id="dl-kruti-formatted-docx">
+                                    <span>📝</span> Formatted Kruti Dev 010 DOCX
+                                </button>
+                                <button class="download-item-btn" id="dl-hindi-formatted-docx">
+                                    <span>📄</span> Formatted Hindi Unicode DOCX
+                                </button>
+                                <button class="download-item-btn" id="dl-kruti-docx">
+                                    <span>✍️</span> Kruti Dev 010 DOCX (Text Runs)
+                                </button>
+                                <button class="download-item-btn" id="dl-hindi-docx">
+                                    <span>🇮🇳</span> Hindi Unicode DOCX (Mangal)
+                                </button>
+
+                                <div style="padding: 0.5rem 0.85rem; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; background: var(--bg-tertiary); border-top: 1px solid var(--border-subtle);">
+                                    PDF Documents
+                                </div>
+                                <button class="download-item-btn" id="dl-kruti-pdf">
+                                    <span>📑</span> Kruti Dev PDF (Visual Hindi)
+                                </button>
+                                <button class="download-item-btn" id="dl-hindi-pdf">
+                                    <span>📑</span> Hindi Unicode PDF
+                                </button>
+
+                                <div style="padding: 0.5rem 0.85rem; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; background: var(--bg-tertiary); border-top: 1px solid var(--border-subtle);">
+                                    Text (.TXT)
+                                </div>
+                                <button class="download-item-btn" id="dl-kruti-txt">
+                                    <span>🔤</span> Kruti Dev Legacy Encoded TXT
+                                </button>
+                                <button class="download-item-btn" id="dl-hindi-txt">
+                                    <span>📝</span> Hindi Unicode TXT
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 17. Find and Replace Bar -->
+                <div class="find-replace-container" id="find-replace-bar" style="display: none;">
+                    <div class="find-replace-inputs">
+                        <div class="input-group">
+                            <span style="color: var(--text-tertiary); font-size: 0.85rem;">Find:</span>
+                            <input type="text" id="find-input" placeholder="Search Hindi, English, or Code...">
+                        </div>
+                        <div class="input-group">
+                            <span style="color: var(--text-tertiary); font-size: 0.85rem;">Replace:</span>
+                            <input type="text" id="replace-input" placeholder="Replacement text...">
+                        </div>
+                        <div class="find-replace-options">
+                            <label><input type="checkbox" id="fr-match-case"> Match Case</label>
+                            <label><input type="checkbox" id="fr-whole-word"> Whole Word</label>
+                            <label><input type="checkbox" id="fr-search-codes" checked> Technical Identifiers</label>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="find-counter" id="find-counter">Matches: 0</span>
+                        <button class="btn btn-secondary" id="find-prev-btn" style="padding: 0.4rem 0.7rem;">Prev</button>
+                        <button class="btn btn-secondary" id="find-next-btn" style="padding: 0.4rem 0.7rem;">Next</button>
+                        <button class="btn btn-primary" id="replace-btn" style="padding: 0.4rem 0.7rem;">Replace</button>
+                        <button class="btn btn-accent" id="replace-all-btn" style="padding: 0.4rem 0.7rem;">Replace All</button>
+                        <button class="btn btn-ghost" id="fr-clear-btn" style="padding: 0.4rem 0.7rem;">Clear</button>
+                    </div>
+                </div>
+
+                <!-- 3 Main Document Panels -->
+                <div class="panels-grid">
+                    <!-- Panel 1: Original Document -->
+                    <div class="doc-panel" id="panel-original">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <span>📄</span> 1. Original Document
+                                <span class="panel-badge" id="source-badge">English Source</span>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <button class="btn btn-ghost btn-icon" id="clear-original-btn" title="Clear text">
+                                    🗑️
+                                </button>
+                                <button class="btn btn-ghost btn-icon" id="copy-original-btn" title="Copy original">
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel-content">
+                            <textarea class="editor-textarea" id="original-textarea" placeholder="Type, paste English document content, or upload a Word/PDF document above..."></textarea>
+                        </div>
+                        <div class="panel-footer">
+                            <span id="original-word-count">Words: 0 | Characters: 0</span>
+                            <span id="original-page-info">Pages: 1</span>
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: Hindi Unicode Master -->
+                    <div class="doc-panel active-focus" id="panel-hindi">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <span>🇮🇳</span> 2. Hindi Unicode
+                                <span class="panel-badge badge-master">Editable Master</span>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <button class="btn btn-ghost btn-icon" id="copy-hindi-btn" title="Copy Hindi Unicode">
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel-content">
+                            <textarea class="editor-textarea hindi-editor" id="hindi-textarea" placeholder="Editable Hindi Master will appear here. You can correct words, technical codes, and names directly..."></textarea>
+                        </div>
+                        <div class="panel-footer">
+                            <span id="hindi-word-count">Words: 0 | Characters: 0</span>
+                            <span style="color: var(--accent-emerald);">● Synchronized</span>
+                        </div>
+                    </div>
+
+                    <!-- Panel 3: Kruti Dev 010 Preview & Raw Code -->
+                    <div class="doc-panel" id="panel-kruti">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <span>🔤</span> 3. Kruti Dev 010
+                                <span class="panel-badge badge-kruti">Preview</span>
+                            </div>
+                            <!-- View Tab Switcher -->
+                            <div class="panel-tabs">
+                                <button class="panel-tab-btn active" id="tab-kruti-visual">Visual Preview</button>
+                                <button class="panel-tab-btn" id="tab-kruti-raw">Raw Code</button>
+                            </div>
+                            <button class="btn btn-ghost btn-icon" id="copy-kruti-btn" title="Copy Kruti Dev Text">
+                                📋
+                            </button>
+                        </div>
+                        <div class="panel-content">
+                            <!-- Visual Preview (Rendered with official Kruti Dev 010 Font) -->
+                            <div class="kruti-visual-preview" id="kruti-visual-box">
+                                <span style="font-family: var(--font-sans); font-size: 0.9rem; color: var(--text-tertiary);">
+                                    Kruti Dev 010 visual preview will display readable Hindi here using Kruti Dev 010 font.
+                                </span>
+                            </div>
+                            <!-- Raw Code Inspection (Monospace ASCII bytes) -->
+                            <div class="kruti-raw-preview" id="kruti-raw-box" style="display: none;">
+                                Legacy ASCII characters (e.g. LVs'ku ekLVj) will be shown here.
+                            </div>
+                        </div>
+                        <div class="panel-footer">
+                            <span id="kruti-meta-info">Font: Kruti Dev 010</span>
+                            <span id="kruti-byte-count">Bytes: 0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Progress Modal (Section 20) -->
+        <div class="modal-backdrop" id="progress-modal">
+            <div class="modal-card" style="max-width: 480px;">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <span>⚡</span> Processing Document
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="progress-container">
+                        <div class="progress-stage" id="progress-stage-text">Uploading & Extracting...</div>
+                        <div class="progress-subtext" id="progress-sub-text">Please wait while we process the document without freezing</div>
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                        </div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-amber);" id="progress-page-counter">
+                            Page 1 of 1 (0%)
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button class="btn btn-secondary" id="cancel-progress-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Dictionary Modal (Section 22) -->
+        <div class="modal-backdrop" id="dictionary-modal">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <span>📖</span> Technical Dictionary Management
+                    </div>
+                    <button class="btn btn-ghost btn-icon" id="close-dict-modal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Search & Add Term -->
+                    <div style="display: flex; gap: 0.6rem; margin-bottom: 1rem;">
+                        <input type="text" id="dict-search-input" placeholder="Search terminology..." style="flex: 1; padding: 0.5rem 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); outline: none;">
+                        <button class="btn btn-primary" id="add-term-btn">+ Add Term</button>
+                    </div>
+
+                    <!-- Add Term Inline Form (hidden by default) -->
+                    <div id="add-term-form" style="display: none; background: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; border: 1px solid var(--border-glow);">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.6rem;">
+                            <input type="text" id="new-term-en" placeholder="English Term (e.g. AXT)" style="padding: 0.4rem 0.6rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary);">
+                            <input type="text" id="new-term-hi" placeholder="Hindi Unicode (e.g. ए.एक्स.टी.)" style="padding: 0.4rem 0.6rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary);">
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                            <button class="btn btn-ghost" id="cancel-new-term">Cancel</button>
+                            <button class="btn btn-accent" id="save-new-term">Save Term</button>
+                        </div>
+                    </div>
+
+                    <!-- Terms Table -->
+                    <div style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+                            <thead>
+                                <tr style="background: var(--bg-tertiary); border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">
+                                    <th style="padding: 0.6rem 0.85rem;">English Term</th>
+                                    <th style="padding: 0.6rem 0.85rem;">Hindi Unicode</th>
+                                    <th style="padding: 0.6rem 0.85rem; text-align: right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dict-terms-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer" style="justify-content: space-between;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary" id="import-dict-btn">Import JSON</button>
+                        <button class="btn btn-secondary" id="export-dict-btn">Export JSON</button>
+                        <input type="file" id="dict-file-input" accept=".json" style="display: none;">
+                    </div>
+                    <button class="btn btn-primary" id="dict-done-btn">Done</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Settings Modal (Section 23) -->
+        <div class="modal-backdrop" id="settings-modal">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <span>⚙️</span> Conversion & Formatting Settings
+                    </div>
+                    <button class="btn btn-ghost btn-icon" id="close-settings-modal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-list">
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Preserve Original Formatting</h4>
+                                <p>Maintain headings, alignments, and run styles in Word document</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-preserve-formatting" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Preserve Bold & Headings</h4>
+                                <p>Bold text remains bold in Hindi and Kruti Dev Word output</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-preserve-bold" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Preserve Underline & Italic</h4>
+                                <p>Preserve text decorations across converted runs</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-preserve-underline" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Preserve Roman Numerals (VI, IV, (iv))</h4>
+                                <p>Never convert Roman numerals into Devanagari Kruti glyphs</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-preserve-roman" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Preserve Numbers & Decimals (6.02, 1.20)</h4>
+                                <p>Preserve exact decimal numbers without changing dots to hyphens</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-preserve-numbers" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Preserve Punctuation (:- , / .)</h4>
+                                <p>Never change dots or colons to Hindi purna viram (।)</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-preserve-punctuation" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Technical Code Translation (505AXT → 505ए.एक्स.टी.)</h4>
+                                <p>Translate alphanumeric technical codes into dot-separated Hindi</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-tech-codes" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Preserve Tables & Borders</h4>
+                                <p>Keep table grid structures and cell formatting intact</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-preserve-tables" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-text">
+                                <h4>Auto-Save to IndexedDB</h4>
+                                <p>Automatically persist large multi-page documents in browser</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="set-auto-save" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Configurable Translation Backend (Section 7) -->
+                        <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-top: 0.5rem;">
+                            <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem;">
+                                Configurable Translation Service
+                            </h4>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                Default uses built-in Railway NLP Translator. You can optionally connect your own secure translation backend or API endpoint.
+                            </p>
+                            <input type="url" id="set-api-endpoint" placeholder="Custom API Endpoint (optional, e.g. https://api.example.com/translate)" style="width: 100%; padding: 0.45rem 0.65rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.85rem; margin-bottom: 0.5rem; outline: none;">
+                            <input type="password" id="set-api-key" placeholder="API Key / Token (optional, kept private on client)" style="width: 100%; padding: 0.45rem 0.65rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.85rem; outline: none;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dropdown Item Styling -->
+    <style>
+        .download-item-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+            padding: 0.65rem 0.95rem;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+        .download-item-btn:hover {
+            background: rgba(245, 158, 11, 0.12);
+            color: var(--accent-amber);
+        }
+    </style>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
