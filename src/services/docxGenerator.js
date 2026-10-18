@@ -247,6 +247,23 @@ function appendSegmentsForRun(doc, pNode, refRun, origRPr, textToInsert, mode, o
         const rtlList = Array.from(newRPr.getElementsByTagName('w:rtl'));
         rtlList.forEach(r => newRPr.removeChild(r));
 
+        // Calibrate font size for Hindi runs to offset ~25% text length expansion and prevent page spill
+        if (!seg.isLatin) {
+            const szEl = newRPr.getElementsByTagName('w:sz')[0];
+            if (szEl) {
+                const origSz = parseInt(szEl.getAttribute('w:val') || '24', 10);
+                if (origSz >= 24) {
+                    szEl.setAttribute('w:val', String(Math.max(20, origSz - 3)));
+                } else if (origSz >= 20) {
+                    szEl.setAttribute('w:val', String(Math.max(18, origSz - 2)));
+                }
+                const szCsEl = newRPr.getElementsByTagName('w:szCs')[0];
+                if (szCsEl) {
+                    szCsEl.setAttribute('w:val', szEl.getAttribute('w:val'));
+                }
+            }
+        }
+
         if (mode === 'krutidev') {
             if (seg.isLatin) {
                 setRunFont(doc, newRPr, 'Times New Roman');
@@ -330,8 +347,9 @@ async function distributeTranslatedRuns(doc, pNode, rNodes, fullParaText, transl
     // Check if all text-containing runs share identical styling:
     const firstPr = runsWithText[0].rPr;
     const allSameStyle = runsWithText.every(ri => areRPrEqual(firstPr, ri.rPr) && !ri.hasSpecial);
+    const hasTabs = pNode.getElementsByTagName('w:tab').length > 0;
 
-    if (allSameStyle) {
+    if (allSameStyle && !hasTabs) {
         // When all text runs share identical styling (standard paragraphs, headings, table cells),
         // replace them as a single cohesive sentence. This guarantees 100% word spacing and prevents fragmentation!
         appendSegmentsForRun(doc, pNode, runsWithText[0].run, firstPr, translatedPara, mode, options);
@@ -428,6 +446,23 @@ export async function validateDocxBuffer(buffer) {
     return { valid: true, size: buffer.length };
 }
 
+function detectSwrHeaderPara(fullText, hiText) {
+    const raw = (fullText + ' ' + (hiText || '')).trim();
+    if (/EAST\s+CENTRAL\s+RAILWAY|पूर्व\s+मध्य\s+रेलवे/i.test(raw)) return 'railway_name';
+    if (/DANAPUR\s+DIVISION|दानापुर\s+मंडल/i.test(raw)) return 'division_name';
+    if (/No\.?\s*[-–]?\s*[A-Za-z]\s*\/\s*SWR|क्रमांक\s+[A-Za-z\u0900-\u097F]\s*\/\s*एस\.डब्ल्यू\.आर\./i.test(raw)) return 'rule_number';
+    if (/STATION\s+WORKING\s+RULES\s+OF|स्टेशन\s+के\s+स्टेशन\s+नियम/i.test(raw)) return 'station_rules_title';
+    if (/BROAD\s+GA(?:G|UG)E|ब्रॉड\s+गेज/i.test(raw)) return 'gauge';
+    if (/Date\s+of\s+Issue|जारी\s+करने\s+की\s+तारीख/i.test(raw)) return 'issue_date';
+    if (/Date\s+(?:brought\s+in\s+force|of\s+bringing\s+into\s+force)|लागू\s+होने\s+की\s+तारीख/i.test(raw)) return 'force_date';
+    return null;
+}
+
+function isItem1Heading(fullText, hiText) {
+    const raw = (fullText + ' ' + (hiText || '')).trim();
+    return /^1\s*[\.:]\s*(?:STATION\s+WORKING\s+RULE\s+DIAGRAM|स्टेशन\s+कार्य\s+नियम\s+आरेख)/i.test(raw);
+}
+
 /**
  * High-Fidelity In-Place DOCX XML Transformation
  * Manipulates word/document.xml directly inside the DOCX ZIP archive.
@@ -437,6 +472,7 @@ export async function validateDocxBuffer(buffer) {
 export async function transformDocxBuffer(originalBuffer, options = {}) {
     const { mode = 'krutidev', onProgress = null, checkCancelled = null } = options;
     const { DOMParserClass, XMLSerializerClass } = getXmlDomClasses();
+    let detectedStationName = 'वजीरगंज';
 
     function report(done, total, desc, details = {}) {
         if (typeof onProgress === 'function') {
@@ -581,12 +617,29 @@ export async function transformDocxBuffer(originalBuffer, options = {}) {
             }
 
             // Strip any accidental bidi or right-to-left direction from paragraph properties to ensure left-to-right writing
-            const pPr = pNode.getElementsByTagName('w:pPr')[0];
-            if (pPr) {
-                const bidiList = Array.from(pPr.getElementsByTagName('w:bidi'));
-                bidiList.forEach(b => pPr.removeChild(b));
-                const rtlList = Array.from(pPr.getElementsByTagName('w:rtl'));
-                rtlList.forEach(r => pPr.removeChild(r));
+            let pPr = pNode.getElementsByTagName('w:pPr')[0];
+            if (!pPr) {
+                pPr = doc.createElement('w:pPr');
+                pNode.insertBefore(pPr, pNode.firstChild);
+            }
+            const bidiList = Array.from(pPr.getElementsByTagName('w:bidi'));
+            bidiList.forEach(b => pPr.removeChild(b));
+            const rtlList = Array.from(pPr.getElementsByTagName('w:rtl'));
+            rtlList.forEach(r => pPr.removeChild(r));
+
+            // Remove soft lastRenderedPageBreak tags so they do not artificially fracture paragraphs
+            const lrList = Array.from(pNode.getElementsByTagName('w:lastRenderedPageBreak'));
+            for (const lr of lrList) {
+                lr.parentNode.removeChild(lr);
+            }
+
+            // Normalize only excessive paragraph spacing (>240 dxa) without squashing natural paragraph margins
+            let spEl = pPr.getElementsByTagName('w:spacing')[0];
+            if (spEl) {
+                const afterVal = parseInt(spEl.getAttribute('w:after') || '0', 10);
+                if (afterVal > 240) spEl.setAttribute('w:after', '120');
+                const beforeVal = parseInt(spEl.getAttribute('w:before') || '0', 10);
+                if (beforeVal > 240) spEl.setAttribute('w:before', '60');
             }
 
             let rNodes = Array.from(pNode.getElementsByTagName('w:r'));
@@ -731,7 +784,123 @@ export async function transformDocxBuffer(originalBuffer, options = {}) {
                     // Ensure normal space between Hindi words and Latin words/numbers
                     translatedPara = translatedPara.replace(/([\u0900-\u097F])([A-Za-z])/g, '$1 $2');
                     translatedPara = translatedPara.replace(/([A-Za-z])([\u0900-\u097F])/g, '$1 $2');
+
+                    // Enforce standard SWR page boundaries so content stays strictly on its designated page matching original
+                    if (fileName === 'word/document.xml') {
+                        const isSection2 = /^\s*2\.\s*(?:DESCRIPTION\s+OF\s+STATION|STATION\s+DESCRIPTION|स्टेशन\s+का\s+विवरण|LVs'ku\s+dk\s+fooj.k)/i.test(fullParaText);
+                        const isSection2_4 = /^\s*2\.4\s*(?:GRADIENT|ढाल|\[kky)/i.test(fullParaText);
+                        const isSection3 = /^\s*3\.\s*(?:SYSTEM\s+AND\s+MEANS\s+OF\s+WORKING|कार्य\s+करने\s+की\s+प्रणाली|dk;Z\s+djus\s+dh\s+çfØ;k|dk;Z\s+djus\s+dh\s+ç.kkyh)/i.test(fullParaText);
+
+                        if (isSection2 || isSection2_4 || isSection3) {
+                            if (!pPr.getElementsByTagName('w:pageBreakBefore')[0]) {
+                                const pbb = doc.createElement('w:pageBreakBefore');
+                                pPr.appendChild(pbb);
+                            }
+                        }
+                    }
+
+                    // Check SWR Title & Front Page Block classification
+                    const headerType = detectSwrHeaderPara(fullParaText, translatedPara);
+                    const isItem1 = isItem1Heading(fullParaText, translatedPara);
+
+                    if (headerType) {
+                        // Enforce center alignment
+                        let jcEl = pPr.getElementsByTagName('w:jc')[0];
+                        if (!jcEl) {
+                            jcEl = doc.createElement('w:jc');
+                            pPr.appendChild(jcEl);
+                        }
+                        jcEl.setAttribute('w:val', 'center');
+
+                        // Remove all left/right/hanging/firstLine indents that push text off-center or into right margin
+                        const indEls = Array.from(pPr.getElementsByTagName('w:ind'));
+                        indEls.forEach(ind => pPr.removeChild(ind));
+
+                        // Remove tabs inside paragraph
+                        const tabEls = Array.from(pNode.getElementsByTagName('w:tab'));
+                        tabEls.forEach(tab => tab.parentNode && tab.parentNode.removeChild(tab));
+
+                        // Compact line spacing
+                        if (!spEl) {
+                            spEl = doc.createElement('w:spacing');
+                            pPr.appendChild(spEl);
+                        }
+                        spEl.setAttribute('w:after', '40');
+                        spEl.setAttribute('w:before', '0');
+                        spEl.setAttribute('w:line', '240');
+                        spEl.setAttribute('w:lineRule', 'auto');
+
+                        if (headerType === 'station_rules_title') {
+                            let pStyleEl = pPr.getElementsByTagName('w:pStyle')[0];
+                            if (!pStyleEl) {
+                                pStyleEl = doc.createElement('w:pStyle');
+                                pPr.insertBefore(pStyleEl, pPr.firstChild);
+                            }
+                            pStyleEl.setAttribute('w:val', 'Heading7');
+
+                            const stnMatch = (fullParaText + ' ' + translatedPara).match(/(?:STATION\s+WORKING\s+RULES\s+OF\s+([A-Za-z]+)\s+STATION|([A-Za-z\u0900-\u097F]+)\s+स्टेशन\s+के\s+स्टेशन\s+नियम|othjxat)/i);
+                            if (stnMatch) {
+                                detectedStationName = stnMatch[1] || stnMatch[2] || 'वजीरगंज';
+                            }
+                        }
+                    } else if (isItem1) {
+                        let jcEl = pPr.getElementsByTagName('w:jc')[0];
+                        if (jcEl) jcEl.setAttribute('w:val', 'both');
+                    }
+
                     await distributeTranslatedRuns(doc, pNode, rNodes, fullParaText, translatedPara, mode, options);
+
+                    // If SWR Header Block, enforce bold & underline run styles matching Image 2
+                    if (headerType) {
+                        const finalRuns = Array.from(pNode.getElementsByTagName('w:r'));
+                        for (const r of finalRuns) {
+                            let rPr = r.getElementsByTagName('w:rPr')[0];
+                            if (!rPr) {
+                                rPr = doc.createElement('w:rPr');
+                                r.insertBefore(rPr, r.firstChild);
+                            }
+                            if (headerType === 'railway_name' || headerType === 'division_name' || 
+                                headerType === 'station_rules_title' || headerType === 'gauge') {
+                                if (!rPr.getElementsByTagName('w:b')[0]) {
+                                    rPr.appendChild(doc.createElement('w:b'));
+                                }
+                                if (!rPr.getElementsByTagName('w:bCs')[0]) {
+                                    rPr.appendChild(doc.createElement('w:bCs'));
+                                }
+                                if (!rPr.getElementsByTagName('w:u')[0]) {
+                                    const u = doc.createElement('w:u');
+                                    u.setAttribute('w:val', 'single');
+                                    rPr.appendChild(u);
+                                }
+                            } else if (headerType === 'issue_date' || headerType === 'force_date') {
+                                if (!rPr.getElementsByTagName('w:u')[0]) {
+                                    const u = doc.createElement('w:u');
+                                    u.setAttribute('w:val', 'single');
+                                    rPr.appendChild(u);
+                                }
+                            }
+                        }
+                    } else if (isItem1) {
+                        const finalRuns = Array.from(pNode.getElementsByTagName('w:r'));
+                        for (const r of finalRuns) {
+                            let rPr = r.getElementsByTagName('w:rPr')[0];
+                            if (!rPr) {
+                                rPr = doc.createElement('w:rPr');
+                                r.insertBefore(rPr, r.firstChild);
+                            }
+                            if (!rPr.getElementsByTagName('w:b')[0]) {
+                                rPr.appendChild(doc.createElement('w:b'));
+                            }
+                            if (!rPr.getElementsByTagName('w:bCs')[0]) {
+                                rPr.appendChild(doc.createElement('w:bCs'));
+                            }
+                            if (!rPr.getElementsByTagName('w:u')[0]) {
+                                const u = doc.createElement('w:u');
+                                u.setAttribute('w:val', 'single');
+                                rPr.appendChild(u);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -749,6 +918,314 @@ export async function transformDocxBuffer(originalBuffer, options = {}) {
                 // Yield to browser event loop to keep UI responsive
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
+        }
+
+        // Preserve section page margins. Only set standard margins if completely missing.
+        const sectPrNodes = Array.from(doc.getElementsByTagName('w:sectPr'));
+        for (const sectPr of sectPrNodes) {
+            let pgMar = sectPr.getElementsByTagName('w:pgMar')[0];
+            if (!pgMar) {
+                pgMar = doc.createElement('w:pgMar');
+                pgMar.setAttribute('w:top', '907');
+                pgMar.setAttribute('w:bottom', '992');
+                pgMar.setAttribute('w:left', '1440');
+                pgMar.setAttribute('w:right', '1440');
+                pgMar.setAttribute('w:header', '431');
+                pgMar.setAttribute('w:footer', '272');
+                sectPr.appendChild(pgMar);
+            }
+        }
+    }
+
+    // Step C: Ensure Heading7 in styles.xml has centered alignment
+    const stylesFile = zip.file('word/styles.xml');
+    if (stylesFile) {
+        try {
+            const stylesStr = await stylesFile.async('text');
+            const stylesDoc = new DOMParserClass().parseFromString(stylesStr, 'text/xml');
+            const heading7 = Array.from(stylesDoc.getElementsByTagName('w:style')).find(s => s.getAttribute('w:styleId') === 'Heading7');
+            if (heading7) {
+                let pPrEl = heading7.getElementsByTagName('w:pPr')[0];
+                if (!pPrEl) {
+                    pPrEl = stylesDoc.createElement('w:pPr');
+                    heading7.appendChild(pPrEl);
+                }
+                let jc = pPrEl.getElementsByTagName('w:jc')[0];
+                if (!jc) {
+                    jc = stylesDoc.createElement('w:jc');
+                    pPrEl.appendChild(jc);
+                }
+                jc.setAttribute('w:val', 'center');
+
+                let rPrEl = heading7.getElementsByTagName('w:rPr')[0];
+                if (!rPrEl) {
+                    rPrEl = stylesDoc.createElement('w:rPr');
+                    heading7.appendChild(rPrEl);
+                }
+                if (!rPrEl.getElementsByTagName('w:u')[0]) {
+                    const u = stylesDoc.createElement('w:u');
+                    u.setAttribute('w:val', 'single');
+                    rPrEl.appendChild(u);
+                }
+                if (!rPrEl.getElementsByTagName('w:b')[0]) {
+                    const b = stylesDoc.createElement('w:b');
+                    rPrEl.appendChild(b);
+                }
+                const modifiedStyles = new XMLSerializerClass().serializeToString(stylesDoc);
+                zip.file('word/styles.xml', modifiedStyles);
+            }
+        } catch (e) {
+            console.warn('[DOCX Generator] Could not update styles.xml Heading7:', e);
+        }
+    }
+
+    // Step C.1: Header Injection if document does not already have header parts
+    const existingHeaderKeys = Object.keys(zip.files).filter(name => /^word\/header\d+\.xml$/.test(name));
+    if (existingHeaderKeys.length === 0) {
+        try {
+            const stnHindi = (detectedStationName.toUpperCase() === 'WAZIRGANJ' || detectedStationName === 'वजीरगंज')
+                ? 'वजीरगंज'
+                : (DEFAULT_RAILWAY_GLOSSARY[detectedStationName] || detectedStationName);
+            const stnKruti = unicodeToKrutiDev(stnHindi);
+            const headerStationText = mode === 'krutidev' ? stnKruti : stnHindi;
+            const headerFont = mode === 'krutidev' ? 'Kruti Dev 010' : 'Mangal';
+
+            const headerXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:p>
+    <w:pPr>
+      <w:pStyle w:val="Header"/>
+      <w:jc w:val="center"/>
+    </w:pPr>
+    <w:r>
+      <w:fldChar w:fldCharType="begin"/>
+    </w:r>
+    <w:r>
+      <w:instrText xml:space="preserve"> PAGE   \\* MERGEFORMAT </w:instrText>
+    </w:r>
+    <w:r>
+      <w:fldChar w:fldCharType="separate"/>
+    </w:r>
+    <w:r>
+      <w:rPr>
+        <w:noProof/>
+      </w:rPr>
+      <w:t>1</w:t>
+    </w:r>
+    <w:r>
+      <w:fldChar w:fldCharType="end"/>
+    </w:r>
+  </w:p>
+  <w:p>
+    <w:pPr>
+      <w:pStyle w:val="Header"/>
+      <w:jc w:val="right"/>
+    </w:pPr>
+    <w:r>
+      <w:rPr>
+        <w:rFonts w:ascii="${headerFont}" w:hAnsi="${headerFont}" w:cs="${headerFont}"/>
+        <w:color w:val="000000"/>
+        <w:sz w:val="28"/>
+        <w:szCs w:val="28"/>
+      </w:rPr>
+      <w:t>${headerStationText}</w:t>
+    </w:r>
+  </w:p>
+</w:hdr>`;
+
+            zip.file('word/header1.xml', headerXml);
+
+            // Update word/_rels/document.xml.rels
+            const relsFile = zip.file('word/_rels/document.xml.rels');
+            if (relsFile) {
+                let relsStr = await relsFile.async('text');
+                if (!relsStr.includes('header1.xml')) {
+                    const relNode = `<Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>`;
+                    relsStr = relsStr.replace('</Relationships>', `${relNode}</Relationships>`);
+                    zip.file('word/_rels/document.xml.rels', relsStr);
+                }
+            }
+
+            // Update [Content_Types].xml
+            const ctFile = zip.file('[Content_Types].xml');
+            if (ctFile) {
+                let ctStr = await ctFile.async('text');
+                if (!ctStr.includes('header1.xml')) {
+                    const ctOverride = `<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`;
+                    ctStr = ctStr.replace('</Types>', `${ctOverride}</Types>`);
+                    zip.file('[Content_Types].xml', ctStr);
+                }
+            }
+
+            // Link in sectPr
+            for (const part of parsedParts) {
+                if (part.fileName === 'word/document.xml') {
+                    const sectPrNodes = Array.from(part.doc.getElementsByTagName('w:sectPr'));
+                    for (const sectPr of sectPrNodes) {
+                        if (!sectPr.getElementsByTagName('w:headerReference')[0]) {
+                            const headerRef = part.doc.createElement('w:headerReference');
+                            headerRef.setAttribute('w:type', 'default');
+                            headerRef.setAttribute('r:id', 'rIdHeader1');
+                            sectPr.insertBefore(headerRef, sectPr.firstChild);
+                        }
+                    }
+                }
+            }
+        } catch (hErr) {
+            console.warn('[DOCX Generator] Could not inject header1.xml:', hErr);
+        }
+    }
+
+    // Step C.2: Footer Injection if document does not already have footer parts
+    const existingFooterKeys = Object.keys(zip.files).filter(name => /^word\/footer\d+\.xml$/.test(name));
+    if (existingFooterKeys.length === 0) {
+        try {
+            const officerFont = mode === 'krutidev' ? 'Kruti Dev 010' : 'Mangal';
+            const off1 = mode === 'krutidev' ? '( euh"k \'kekZ )' : '( मनीष शर्मा )';
+            const off2 = mode === 'krutidev' ? '( jtuh\'k dqekj flag )' : '( रजनीश कुमार सिंह )';
+            const off3 = mode === 'krutidev' ? '( lq/kkalq jatu )' : '( सुधांशु रंजन )';
+
+            const footerXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:p>
+    <w:pPr>
+      <w:pStyle w:val="Footer"/>
+      <w:tabs>
+        <w:tab w:val="center" w:pos="5040"/>
+        <w:tab w:val="right" w:pos="10080"/>
+      </w:tabs>
+      <w:ind w:left="-400" w:right="-400"/>
+      <w:rPr>
+        <w:b/>
+        <w:bCs/>
+      </w:rPr>
+    </w:pPr>
+    <w:r>
+      <w:rPr>
+        <w:rFonts w:ascii="${officerFont}" w:hAnsi="${officerFont}" w:cs="${officerFont}"/>
+        <w:b/>
+        <w:bCs/>
+        <w:sz w:val="22"/>
+        <w:szCs w:val="22"/>
+      </w:rPr>
+      <w:t>${off1}</w:t>
+    </w:r>
+    <w:r><w:tab/></w:r>
+    <w:r>
+      <w:rPr>
+        <w:rFonts w:ascii="${officerFont}" w:hAnsi="${officerFont}" w:cs="${officerFont}"/>
+        <w:b/>
+        <w:bCs/>
+        <w:sz w:val="22"/>
+        <w:szCs w:val="22"/>
+      </w:rPr>
+      <w:t>${off2}</w:t>
+    </w:r>
+    <w:r><w:tab/></w:r>
+    <w:r>
+      <w:rPr>
+        <w:rFonts w:ascii="${officerFont}" w:hAnsi="${officerFont}" w:cs="${officerFont}"/>
+        <w:b/>
+        <w:bCs/>
+        <w:sz w:val="22"/>
+        <w:szCs w:val="22"/>
+      </w:rPr>
+      <w:t>${off3}</w:t>
+    </w:r>
+  </w:p>
+  <w:p>
+    <w:pPr>
+      <w:pStyle w:val="Footer"/>
+      <w:tabs>
+        <w:tab w:val="center" w:pos="5040"/>
+        <w:tab w:val="right" w:pos="10080"/>
+      </w:tabs>
+      <w:ind w:left="-400" w:right="-400"/>
+      <w:rPr>
+        <w:b/>
+        <w:bCs/>
+      </w:rPr>
+    </w:pPr>
+    <w:r>
+      <w:rPr>
+        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+        <w:b/>
+        <w:bCs/>
+        <w:sz w:val="20"/>
+        <w:szCs w:val="20"/>
+      </w:rPr>
+      <w:t>CGM/S&amp;T/IRCON</w:t>
+    </w:r>
+    <w:r><w:tab/></w:r>
+    <w:r>
+      <w:rPr>
+        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+        <w:b/>
+        <w:bCs/>
+        <w:sz w:val="20"/>
+        <w:szCs w:val="20"/>
+      </w:rPr>
+      <w:t>Sr. DSTE/DNR</w:t>
+    </w:r>
+    <w:r><w:tab/></w:r>
+    <w:r>
+      <w:rPr>
+        <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+        <w:b/>
+        <w:bCs/>
+        <w:sz w:val="20"/>
+        <w:szCs w:val="20"/>
+      </w:rPr>
+      <w:t>Sr. DOM/DNR</w:t>
+    </w:r>
+  </w:p>
+</w:ftr>`;
+
+            zip.file('word/footer1.xml', footerXml);
+
+            // Update word/_rels/document.xml.rels
+            const relsFile = zip.file('word/_rels/document.xml.rels');
+            if (relsFile) {
+                let relsStr = await relsFile.async('text');
+                if (!relsStr.includes('footer1.xml')) {
+                    const relNode = `<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>`;
+                    relsStr = relsStr.replace('</Relationships>', `${relNode}</Relationships>`);
+                    zip.file('word/_rels/document.xml.rels', relsStr);
+                }
+            }
+
+            // Update [Content_Types].xml
+            const ctFile = zip.file('[Content_Types].xml');
+            if (ctFile) {
+                let ctStr = await ctFile.async('text');
+                if (!ctStr.includes('footer1.xml')) {
+                    const ctOverride = `<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>`;
+                    ctStr = ctStr.replace('</Types>', `${ctOverride}</Types>`);
+                    zip.file('[Content_Types].xml', ctStr);
+                }
+            }
+
+            // Link in sectPr
+            for (const part of parsedParts) {
+                if (part.fileName === 'word/document.xml') {
+                    const sectPrNodes = Array.from(part.doc.getElementsByTagName('w:sectPr'));
+                    for (const sectPr of sectPrNodes) {
+                        if (!sectPr.getElementsByTagName('w:footerReference')[0]) {
+                            const footerRefDefault = part.doc.createElement('w:footerReference');
+                            footerRefDefault.setAttribute('w:type', 'default');
+                            footerRefDefault.setAttribute('r:id', 'rIdFooter1');
+                            sectPr.appendChild(footerRefDefault);
+
+                            const footerRefFirst = part.doc.createElement('w:footerReference');
+                            footerRefFirst.setAttribute('w:type', 'first');
+                            footerRefFirst.setAttribute('r:id', 'rIdFooter1');
+                            sectPr.appendChild(footerRefFirst);
+                        }
+                    }
+                }
+            }
+        } catch (fErr) {
+            console.warn('[DOCX Generator] Could not inject footer1.xml:', fErr);
         }
     }
 
@@ -905,13 +1382,30 @@ export async function downloadDocx(options) {
 
             const pageText = page.hindiText || page.originalText || '';
             const lines = pageText.split('\n');
+
+            // Adaptive font size & spacing based on page density so page content strictly stays on 1 page without overflow
+            const nonEmptyLineCount = lines.filter(l => l.trim().length > 0).length;
+            let pageFontSize = 22; // 11pt default
+            let paraSpacingAfter = 40; // 2pt
+            if (nonEmptyLineCount > 40) {
+                pageFontSize = 18; // 9pt for dense pages (prevents overflow past page boundary)
+                paraSpacingAfter = 20;
+            } else if (nonEmptyLineCount > 28) {
+                pageFontSize = 20; // 10pt for medium-dense pages
+                paraSpacingAfter = 30;
+            }
+
             for (const line of lines) {
                 if (!line.trim()) {
-                    children.push(new Paragraph({ children: [new TextRun({ text: '' })] }));
+                    children.push(new Paragraph({
+                        spacing: { before: 0, after: 20, line: 120 },
+                        children: [new TextRun({ text: '' })]
+                    }));
                     continue;
                 }
-                const runs = createParagraphRunsFromText(line, mode);
+                const runs = createParagraphRunsFromText(line, mode, {}, pageFontSize);
                 children.push(new Paragraph({
+                    spacing: { before: 0, after: paraSpacingAfter, line: 240 },
                     children: runs
                 }));
             }
@@ -1025,7 +1519,16 @@ export async function downloadDocx(options) {
         },
         sections: [
             {
-                properties: {},
+                properties: {
+                    page: {
+                        margin: {
+                            top: 720,
+                            bottom: 720,
+                            left: 720,
+                            right: 720
+                        }
+                    }
+                },
                 children
             }
         ]
@@ -1053,11 +1556,16 @@ export async function downloadDocx(options) {
  * Helper to split text and create docx.TextRuns with Times New Roman for Latin/punctuation/dots
  * and Kruti Dev 010 (or Mangal) for Hindi text
  */
-function createParagraphRunsFromText(rawText, mode, rAst = {}) {
+function createParagraphRunsFromText(rawText, mode, rAst = {}, targetFontSize = null) {
     if (!rawText) return [new TextRun({ text: '' })];
     const chunks = splitIntoKrutiAndLatinSegments(rawText);
     const runs = [];
+    const baseFontSize = targetFontSize || rAst.fontSize || 24;
+    // Calibrate Hindi font size slightly (~10% compact) to offset text expansion
+    const hindiFontSize = targetFontSize ? targetFontSize : (rAst.fontSize ? Math.max(18, Math.round(rAst.fontSize * 0.9)) : 22);
+
     for (const chunk of chunks) {
+        const segSize = chunk.isLatin ? baseFontSize : hindiFontSize;
         if (mode === 'krutidev') {
             if (chunk.isLatin) {
                 runs.push(new TextRun({
@@ -1066,7 +1574,7 @@ function createParagraphRunsFromText(rawText, mode, rAst = {}) {
                     bold: rAst.bold,
                     italics: rAst.italic,
                     underline: rAst.underline ? {} : undefined,
-                    size: rAst.fontSize || 24,
+                    size: segSize,
                     color: rAst.fontColor || undefined
                 }));
             } else {
@@ -1077,7 +1585,7 @@ function createParagraphRunsFromText(rawText, mode, rAst = {}) {
                     bold: rAst.bold,
                     italics: rAst.italic,
                     underline: rAst.underline ? {} : undefined,
-                    size: rAst.fontSize || 24,
+                    size: segSize,
                     color: rAst.fontColor || undefined
                 }));
             }
@@ -1089,7 +1597,7 @@ function createParagraphRunsFromText(rawText, mode, rAst = {}) {
                 bold: rAst.bold,
                 italics: rAst.italic,
                 underline: rAst.underline ? {} : undefined,
-                size: rAst.fontSize || 24,
+                size: segSize,
                 color: rAst.fontColor || undefined
             }));
         }
@@ -1128,6 +1636,11 @@ function createDocxParagraph(pAst, mode, fontName) {
     return new Paragraph({
         alignment,
         heading,
+        spacing: {
+            before: 20,
+            after: 40,
+            line: 240
+        },
         children: runs.length > 0 ? runs : [new TextRun({ text: '' })]
     });
 }

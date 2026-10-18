@@ -60,8 +60,8 @@ export function validateDocumentQuality(totalPages, pagesData = []) {
         const hindi = page.hindiText || '';
         const kruti = page.krutiText || '';
 
-        // Check Roman numerals
-        const romanMatches = orig.match(/\b(M{0,4}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{1,4}))\b|\((?:i|ii|iii|iv|v|vi|vii|viii|ix|x)\)/g) || [];
+        // Check Roman numerals (multi-letter Roman numerals or bracketed Roman numbers)
+        const romanMatches = orig.match(/\b(M{0,4}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{2,4}|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV))\b|\((?:i|ii|iii|iv|v|vi|vii|viii|ix|x|I|II|III|IV|V|VI)\)/g) || [];
         for (const rom of romanMatches) {
             if (!hindi.includes(rom) || !kruti.includes(rom)) {
                 romanOk = false;
@@ -155,7 +155,7 @@ export function validateTranslationCompleteness(hindiText, options = {}) {
                     const offset = match.index;
                     const charBefore = offset > 0 ? trimmed.charAt(offset - 1) : '';
                     const charAfter = offset + word.length < trimmed.length ? trimmed.charAt(offset + word.length) : '';
-                    if (preserveRoman && isPermittedRomanNumeral(word, charBefore, charAfter)) {
+                    if (preserveRoman && isPermittedRomanNumeral(word, charBefore, charAfter, trimmed, offset)) {
                         continue;
                     }
                     allMatches.push(word);
@@ -196,7 +196,7 @@ export function validateTranslationCompleteness(hindiText, options = {}) {
                 const charBefore = offset > 0 ? trimmed.charAt(offset - 1) : '';
                 const charAfter = offset + word.length < trimmed.length ? trimmed.charAt(offset + word.length) : '';
 
-                if (preserveRoman && isPermittedRomanNumeral(word, charBefore, charAfter)) {
+                if (preserveRoman && isPermittedRomanNumeral(word, charBefore, charAfter, trimmed, offset)) {
                     continue;
                 }
 

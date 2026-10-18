@@ -292,7 +292,8 @@ export function krutiDevToUnicode(krutiText) {
 }
 
 // Pure non-ASCII Kruti Dev glyphs (character codes > 127 in Remington layout)
-const KRUTI_DEV_GLYPH_REGEX = /[ñåƒ„…†‡ˆ‰Š‹¶Ùäºí«|ØÝæçôêëìï÷¥èË±ÆÇÉÊÈÌÍÎÏÑÒÓÔÖÜ¿À¾ŒÞß]/;
+// Note: Unicode horizontal ellipsis '\u2026' is standard punctuation and MUST NOT be in this regex
+const KRUTI_DEV_GLYPH_REGEX = /[ñåƒ„†‡ˆ‰Š‹¶Ùäºí«|ØÝæçôêëìï÷¥èË±ÆÇÉÊÈÌÍÎÏÑÒÓÔÖÜ¿À¾ŒÞß]/;
 
 // Structural patterns specific to Kruti Dev (never occurring in valid English words):
 // - Word containing lowercase followed by capital 'Z' e.g. dk;Z, ekxZ, o"kZ (in Remington layout 'Z' is reph)
@@ -328,7 +329,11 @@ const COMMON_ENGLISH_WORDS = new Set([
     'remove', 'removed', 'removing', 'clamp', 'padlock', 'padlocks', 'locked', 'physically',
     'inspected', 'inspect', 'register', 'details', 'detail', 'route', 'approach', 'approaching',
     'suitable', 'alternative', 'purpose', 'format', 'below', 'above', 'within', 'until', 'calling',
-    'fails', 'counter', 'panel', 'reset', 'whenever', 'since', 'provided', 'adopt', 'recorded'
+    'fails', 'counter', 'panel', 'reset', 'whenever', 'since', 'provided', 'adopt', 'recorded',
+    'issue', 'issued', 'issues', 'bringing', 'brought', 'force', 'forced', 'central', 'eastern', 'western',
+    'northern', 'southern', 'railway', 'railways', 'division', 'gauge', 'gage', 'broad', 'working', 'meter',
+    'metre', 'wazirganj', 'danapur', 'office', 'complete', 'layout', 'features', 'capacity', 'holding',
+    'adjacent', 'distance', 'daily', 'reported', 'diagram', 'quoted', 'description', 'shown'
 ]);
 
 /**
@@ -343,11 +348,24 @@ export function isKrutiDevText(text) {
     const devCount = (trimmed.match(/[\u0900-\u097F]/g) || []).length;
     if (devCount > 0) return false;
 
-    const words = trimmed.toLowerCase().split(/[^a-zA-Z0-9ñåƒ„…†‡ˆ‰Š‹¶Ùäºí«ØÝæçôêëìï÷¥èË±ÆÇÉÊÈÌÍÎÏÑÒÓÔÖÜ¿À¾ŒÞßZ~A,]+/i).filter(Boolean);
+    // Strip common punctuation (dots, ellipses, dashes, quotes, spaces, numbers) when analyzing
+    const textWithoutPunct = trimmed.replace(/[\d\s.,;:!?\/\-\(\)\[\]\{\}'"&%@+=\\_—–…\•]/g, '');
+    if (!textWithoutPunct) return false;
+
+    const words = trimmed.toLowerCase().split(/[^a-zA-Z0-9ñåƒ„†‡ˆ‰Š‹¶Ùäºí«ØÝæçôêëìï÷¥èË±ÆÇÉÊÈÌÍÎÏÑÒÓÔÖÜ¿À¾ŒÞßZ~A,]+/i).filter(Boolean);
 
     // If any common English word is present, it is not pure Kruti Dev
     for (const w of words) {
         if (COMMON_ENGLISH_WORDS.has(w)) return false;
+    }
+
+    // If text consists of ASCII Latin characters & punctuation without any Kruti Dev structure or marker words, it is English
+    if (/^[a-zA-Z\s.,;:!?\/\-\(\)\[\]\{\}'"&%@+=\\_—–…\•]+$/.test(trimmed)) {
+        const hasKrutiStructure = KRUTI_DEV_STRUCTURAL_REGEX.test(trimmed);
+        const hasMarker = words.some(w => KRUTI_DEV_MARKER_WORDS.has(w));
+        if (!hasKrutiStructure && !hasMarker) {
+            return false;
+        }
     }
 
     if (KRUTI_DEV_GLYPH_REGEX.test(trimmed)) return true;

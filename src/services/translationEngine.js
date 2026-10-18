@@ -311,12 +311,12 @@ export const ROMAN_NUMERALS_SET = new Set([
 ]);
 
 const STRICT_ROMAN_SET = new Set([
-    'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
+    'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
     'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
     'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII', 'XXVIII', 'XXIX', 'XXX'
 ]);
 
-export function isPermittedRomanNumeral(word, charBefore = '', charAfter = '') {
+export function isPermittedRomanNumeral(word, charBefore = '', charAfter = '', fullText = '', offset = -1) {
     if (!word) return false;
     const clean = word.replace(/^[(\[]/, '').replace(/[)\]]$/, '');
     const cleanLower = clean.toLowerCase();
@@ -337,10 +337,26 @@ export function isPermittedRomanNumeral(word, charBefore = '', charAfter = '') {
         return true;
     }
 
-    // Standalone Roman numerals for Chapters, Rules, etc. (must be uppercase)
-    if (STRICT_ROMAN_SET.has(cleanUpper)) {
+    // Standalone multi-letter Roman numerals for Chapters, Rules, etc. (must be uppercase and NOT single letter 'I')
+    if (cleanUpper !== 'I' && STRICT_ROMAN_SET.has(cleanUpper)) {
         return true;
     }
+
+    // Standalone letter 'I' is ONLY a Roman numeral if it has structural context:
+    // e.g. "Chapter I", "Part I", "Standard-I", "Class I", "Table I", "Rule I", "Appendix I", "Section I", or part of sequence "I, II"
+    if (cleanUpper === 'I') {
+        if (fullText && offset >= 0) {
+            const beforeSnippet = fullText.slice(Math.max(0, offset - 30), offset);
+            if (/(?:Chapter|अध्याय|Part|भाग|Rule|नियम|Appendix|परिशिष्ट|Standard|मानक|Class|श्रेणी|कक्षा|वर्ग|Grade|ग्रेड|Section|धारा|सेक्शन|Table|सारणी|तालिका|Schedule|अनुसूची|Plate|Annexure|Volume|खंड|Phase|Stage|Type|Item|मद)[- ]+$/i.test(beforeSnippet)) {
+                return true;
+            }
+            const afterSnippet = fullText.slice(offset + word.length, Math.min(fullText.length, offset + word.length + 20));
+            if (/^\s*[,&/–-]\s*(?:II|III|IV|V|VI)\b/i.test(afterSnippet)) {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
@@ -699,6 +715,69 @@ export function translateRailwaySentenceStructure(text) {
     s = s.replace(/\bResetting\s+Operation\s+of\s+Description\s+of\s+Station\s+with\s+Counter\s+and\s+Busy\.?/gi,
         'गणक और व्यस्त के साथ स्टेशन का विवरण की पुनर्स्थापन प्रक्रिया।');
 
+    // Context-Aware Sentence Translation for English pronoun "I" (Requirement 3: Never treat as Roman numeral 1):
+    s = s.replace(/\bI\s+hereby\s+certify\s+that\b/gi, 'मैं एतद्द्वारा प्रमाणित करता हूँ कि');
+    s = s.replace(/\bI\s+hereby\s+declare\s+that\b/gi, 'मैं एतद्द्वारा घोषणा करता हूँ कि');
+    s = s.replace(/\bI\s+hereby\b/gi, 'मैं एतद्द्वारा');
+    s = s.replace(/\bI\s+certify\s+that\b/gi, 'मैं प्रमाणित करता हूँ कि');
+    s = s.replace(/\bI\s+declare\s+that\b/gi, 'मैं घोषणा करता हूँ कि');
+    s = s.replace(/\bI\s+have\s+inspected\s+and\s+verified\b/gi, 'मैंने निरीक्षण किया है और सत्यापित किया है');
+    s = s.replace(/\bI\s+have\s+inspected\b/gi, 'मैंने निरीक्षण किया है');
+    s = s.replace(/\bI\s+inspected\b/gi, 'मैंने निरीक्षण किया');
+    s = s.replace(/\bI\s+have\s+verified\b/gi, 'मैंने सत्यापित किया है');
+    s = s.replace(/\bI\s+verified\b/gi, 'मैंने सत्यापित किया');
+    s = s.replace(/\bI\s+have\s+checked\b/gi, 'मैंने जाँच की है');
+    s = s.replace(/\bI\s+checked\b/gi, 'मैंने जाँच की');
+    s = s.replace(/\bI\s+have\s+examined\b/gi, 'मैंने परीक्षण किया है');
+    s = s.replace(/\bI\s+examined\b/gi, 'मैंने परीक्षण किया');
+    s = s.replace(/\bI\s+observed\b/gi, 'मैंने देखा');
+    s = s.replace(/\bI\s+noticed\b/gi, 'मैंने देखा');
+    s = s.replace(/\bI\s+found\s+that\b/gi, 'मैंने पाया कि');
+    s = s.replace(/\bI\s+found\b/gi, 'मैंने पाया');
+    s = s.replace(/\bI\s+have\s+received\b/gi, 'मुझे प्राप्त हुआ है');
+    s = s.replace(/\bI\s+received\b/gi, 'मुझे प्राप्त हुआ');
+    s = s.replace(/\bI\s+am\s+directed\s+to\b/gi, 'मुझे निर्देश दिया गया है कि');
+    s = s.replace(/\bI\s+am\s+of\s+the\s+opinion\s+that\b/gi, 'मेरा यह मानना है कि');
+    s = s.replace(/\bI\s+am\s+satisfied\s+that\b/gi, 'मेरा यह समाधान हो गया है कि');
+    s = s.replace(/\bI\s+am\s+on\s+duty\b/gi, 'मैं ड्यूटी पर हूँ');
+    s = s.replace(/\bI\s+am\b/gi, 'मैं हूँ');
+    s = s.replace(/\bI\s+was\b/gi, 'मैं था');
+    s = s.replace(/\bI\s+will\b/gi, 'मैं');
+    s = s.replace(/\bI\s+shall\b/gi, 'मैं');
+    s = s.replace(/\bI\s+would\b/gi, 'मैं');
+    s = s.replace(/\bI\s+can\b/gi, 'मैं');
+    s = s.replace(/\bI\s+could\b/gi, 'मैं');
+    s = s.replace(/\bI\s+must\b/gi, 'मुझे');
+    s = s.replace(/\bI\s+should\b/gi, 'मुझे');
+    s = s.replace(/\bI\s+request\s+that\b/gi, 'मैं अनुरोध करता हूँ कि');
+    s = s.replace(/\bI\s+request\b/gi, 'मैं अनुरोध करता हूँ');
+    s = s.replace(/\bI\s+recommend\s+that\b/gi, 'मैं अनुशंसा करता हूँ कि');
+    s = s.replace(/\bI\s+recommend\b/gi, 'मैं अनुशंसा करता हूँ');
+    s = s.replace(/\bI\s+agree\s+that\b/gi, 'मैं सहमत हूँ कि');
+    s = s.replace(/\bI\s+agree\b/gi, 'मैं सहमत हूँ');
+    s = s.replace(/\bI\s+suggest\s+that\b/gi, 'मैं सुझाव देता हूँ कि');
+    s = s.replace(/\bI\s+suggest\b/gi, 'मैं सुझाव देता हूँ');
+    s = s.replace(/\bI\s+confirm\s+that\b/gi, 'मैं पुष्टि करता हूँ कि');
+    s = s.replace(/\bI\s+confirm\b/gi, 'मैं पुष्टि करता हूँ');
+    s = s.replace(/\bI\s+informed\b/gi, 'मैंने सूचित किया');
+    s = s.replace(/\bI\s+advised\b/gi, 'मैंने सलाह दी');
+    s = s.replace(/\bI\s+reported\b/gi, 'मैंने रिपोर्ट किया');
+    s = s.replace(/\bI\s+sent\b/gi, 'मैंने भेजा');
+    s = s.replace(/\bI\s+took\s+over\b/gi, 'मैंने कार्यभार संभाला');
+    s = s.replace(/\bI\s+handed\s+over\b/gi, 'मैंने कार्यभार सौंपा');
+    s = s.replace(/\bthat\s+I\b/gi, 'कि मैं');
+    s = s.replace(/\bif\s+I\b/gi, 'यदि मैं');
+    s = s.replace(/\bwhen\s+I\b/gi, 'जब मैंने');
+    s = s.replace(/\bas\s+I\b/gi, 'जैसा कि मैंने');
+    s = s.replace(/\bwhich\s+I\b/gi, 'जिसकी मैंने');
+    s = s.replace(/\bwhere\s+I\b/gi, 'जहाँ मैंने');
+    s = s.replace(/\bbecause\s+I\b/gi, 'क्योंकि मैंने');
+    s = s.replace(/\bI'm\b/gi, 'मैं हूँ');
+    s = s.replace(/\bI've\b/gi, 'मैंने');
+    s = s.replace(/\bI'll\b/gi, 'मैं');
+    s = s.replace(/\bI'd\b/gi, 'मैं');
+
+
     // Pattern 0: Section 10 Railway Document Template - SWR Classification & Operating System
     s = s.replace(/\b([A-Za-z]+)\s+Station\s+is\s+a\s+['"]?([A-Za-z])['"]?\s+class\s+station\s+on\s+([A-Za-z]+)\s*[-–—]\s*([A-Za-z]+)\s+(?:B\.?G\.?|BG|Broad Gauge)\s+(electrified|non-electrified)\s+section\s+having\s+dual\s+VDU\s+worked\s+under\s+Absolute\s+Block\s+System\s+with\s+Standard-?([I|V|X]+)\s+ELECTRONIC\s+INTERLOCKING\.?/gi,
         (match, stn, cls, sec1, sec2, elec, rom) => {
@@ -734,7 +813,6 @@ export function translateRailwaySentenceStructure(text) {
     s = s.replace(/\bElectrified\s+Section\b/gi, 'विद्युतीकृत सेक्शन');
     s = s.replace(/\bNon-electrified\s+Section\b/gi, 'गैर-विद्युतीकृत सेक्शन');
     s = s.replace(/\bStation\s+Description\b/gi, 'स्टेशन का विवरण');
-    s = s.replace(/\bAdjacent\s+Stations?\b/gi, 'निकटवर्ती स्टेशन');
     s = s.replace(/\bHolding\s+Capacity\b/gi, 'धारण क्षमता');
     s = s.replace(/\bDay-to-day\s+Operations?\b/gi, 'दैनिक संचालन');
     s = s.replace(/\bDay\s+to\s+day\s+Operations?\b/gi, 'दैनिक संचालन');
@@ -750,11 +828,61 @@ export function translateRailwaySentenceStructure(text) {
     s = s.replace(/\bB\.?G\.?\s+(electrified|non-electrified)\b/gi, 'बड़ी लाइन के $1');
     s = s.replace(/\bB\.?G\.?\b/gi, 'बड़ी लाइन');
 
-    // Pattern 1: Circular Header & Date
+    // Railway Zone and Division
+    s = s.replace(/\bEAST\s+CENTRAL\s+RAILWAY\b/gi, 'पूर्व मध्य रेलवे');
+    s = s.replace(/\bDANAPUR\s+DIVISION\b/gi, 'दानापुर मंडल');
+
+    // Rule number: No. -T/SWR/WZJ/2026 -> क्रमांक टी/एस.डब्ल्यू.आर./डब्ल्यू.जेड.जे./2026 (No hyphen after क्रमांक!)
+    s = s.replace(/\bNo\.?\s*[-–]?\s*([A-Za-z])\s*\/\s*SWR\s*\/\s*([A-Za-z]+)\s*\/\s*(\d{4})\b/gi, (match, prefix, stn, yr) => {
+        const pHi = ALPHABET_HINDI_MAP[prefix.toUpperCase()] || prefix;
+        let stnHi = 'डब्ल्यू.जेड.जे.';
+        if (stn.toUpperCase() === 'WZJ') stnHi = 'डब्ल्यू.जेड.जे.';
+        else {
+            stnHi = stn.toUpperCase().split('').map(c => ALPHABET_HINDI_MAP[c] || c).join('.');
+        }
+        return `क्रमांक ${pHi}/एस.डब्ल्यू.आर./${stnHi}/${yr}`;
+    });
+
+    // Station Working Rules of [NAME] Station
+    s = s.replace(/\bSTATION\s+WORKING\s+RULES\s+OF\s+([A-Za-z]+)\s+STATION\b/gi, (match, stn) => {
+        let stnHi = 'वजीरगंज';
+        if (stn.toUpperCase() === 'WAZIRGANJ') stnHi = 'वजीरगंज';
+        else if (DEFAULT_RAILWAY_GLOSSARY[stn] || DEFAULT_RAILWAY_GLOSSARY[stn.toUpperCase()]) {
+            stnHi = DEFAULT_RAILWAY_GLOSSARY[stn] || DEFAULT_RAILWAY_GLOSSARY[stn.toUpperCase()];
+        } else {
+            stnHi = stn;
+        }
+        return `${stnHi} स्टेशन के स्टेशन नियम`;
+    });
+
+    // BROAD GAGE / BROAD GAUGE
+    s = s.replace(/\bBROAD\s+GA(?:G|UG)E\b/gi, 'ब्रॉड गेज');
+
+    // Pattern 1: Circular Header & Dates
     s = s.replace(/\bSafety Circular No\.?\s*(\d+\/\d+|\d+)/gi, 'सुरक्षा परिपत्र संख्या $1');
-    s = s.replace(/\bDate of Issue\s*[:-]+\s*(\d{1,2}[-.\/]\d{1,2}[-.\/]\d{2,4})/gi, 'जारी करने की तारीख: $1');
-    s = s.replace(/\bDate of Issue\s*[:-]+/gi, 'जारी करने की तारीख:-');
-    s = s.replace(/\bDate of Issue\b/gi, 'जारी करने की तारीख');
+    s = s.replace(/\bDate\s+of\s+Issue\s*[:\-\s]*([.…]+)/gi, 'जारी करने की तारीख ........................................');
+    s = s.replace(/\bDate\s+of\s+Issue\s*[:-]+\s*(\d{1,2}[-.\/]\d{1,2}[-.\/]\d{2,4})/gi, 'जारी करने की तारीख: $1');
+    s = s.replace(/\bDate\s+of\s+Issue\s*[:-]+/gi, 'जारी करने की तारीख:-');
+    s = s.replace(/\bDate\s+of\s+Issue\b/gi, 'जारी करने की तारीख');
+
+    s = s.replace(/\bDate\s+(?:brought\s+in\s+force|of\s+bringing\s+into\s+force)\s*[:\-\s]*([.…]+)/gi, 'लागू होने की तारीख ........................................');
+    s = s.replace(/\bDate\s+(?:brought\s+in\s+force|of\s+bringing\s+into\s+force)\s*[:-]+\s*(\d{1,2}[-.\/]\d{1,2}[-.\/]\d{2,4})/gi, 'लागू होने की तारीख: $1');
+    s = s.replace(/\bDate\s+(?:brought\s+in\s+force|of\s+bringing\s+into\s+force)\s*[:-]+/gi, 'लागू होने की तारीख:-');
+    s = s.replace(/\bDate\s+(?:brought\s+in\s+force|of\s+bringing\s+into\s+force)\b/gi, 'लागू होने की तारीख');
+
+    // SWR Introductory paragraph (Official Image 2 wording)
+    s = s.replace(/\bThe\s+station\s+working\s+rules\s+must\s+be\s+read\s+in\s+conjunction\s+with\s+General\s+and\s+Subsidiary\s+rule\s+and\s+Block\s+working\s+manual\s+(&|and)\s+accident\s+manual\.?\s+These\s+rules\s+do\s+not\s+in\s+any\s+way\s+supersede\s+any\s+rules\s+in\s+the\s+above\s+books\s+and\s+any\s+other\s+safety\s+circular\/\s*operating\s+circular\/\s*joint\s+procedure\s+order\s+etc\.?/gi,
+        'स्टेशन कार्य नियम को सामान्य और सहायक नियम और ब्लॉक दस्तावेज मैनुअल और दुर्घटना मैनुअल के संयोजन में पढ़ा जाना चाहिए। ये नियम किसी भी तरह से उपरोक्त पुस्तकों और किसी अन्य सुरक्षा परिपत्र/ऑपरेटिंग सर्कुलर/संयुक्त प्रक्रिया आदेश आदि के किसी भी नियम का स्थान नहीं लेते हैं।');
+
+    // Item 1 Heading and SWR Diagram details
+    s = s.replace(/\b1\.\s*STATION\s+WORKING\s+RULE\s+DIAGRAM\.?/gi, '1 .    स्टेशन कार्य नियम आरेख।');
+    s = s.replace(/\bSWR\s+Diagram\s+No\.?\s*65\/2024,\s*SR\.?DSTE\/DNR\s+upto\s+ALT-II,\s*dated\.?14\.10\.2025\s+based\s+on\s+CSTE\/E\.C\.\s+Railway\s+Signal\s+Interlocking\s+Plan\s+No\.?\s*ECR\/SIP\/DNR\/WZJ\/318\/2018\s+upto\s+ALT-B3,\s*date\.?01\.04\.2025\s+which\s+shows\s+complete\s+layout\s+of\s+WAZIRGANJ\s+station\.[\s\S]*?displayed\s+conspicuously\s+in\s+SM[’']S\s+office\.?/gi,
+        'एस.डब्ल्यू.आर. आरेख संख्या 65/2024, एस.आर.टी.ई./डी.एन.आर. ए.एल.टी.-II तक, दिनांक 14.10.2025 सी.एस.टी.ई./ई.सी. रेलवे सिग्नल इंटरलॉकिंग योजना संख्या पर आधारित । ई.सी.आर./एस.आई.पी./डी.एन.आर./डब्ल्यू.जेड.जे./318/2018 ए.एल.टी.-बी 3, तारीख तक | 01.04.2025 जो वजीरगंज स्टेशन का पूरा लेआउट दिखाता है। सभी सिग्नलिंग सुविधाओं को प्रदर्शित करने के अलावा, आरेख ढलान, सभी व्यक्तियों की धारण क्षमता लाइनें, रेखा स्टेशन का नाम और स्टेशन के केंद्र लाइन से उनकी दूरी और ट्रेनों के दैनिक संचालन में आवश्यक अन्य जानकारी जैसे प्रासंगिक क्रॉस ओवर पॉइंट, सिग्नल, ओवर रन के बीच की दूरी को इंगित करता है लाइन यह आरेख मुख्य रूप से एस.एम. के कार्यालय में प्रदर्शित किया जाना चाहिए।');
+    s = s.replace(/\bWhen\s+(?:reporting\s+accident|accident\s+is\s+reported),?\s*reference\s+should\s+be\s+made\s+to\s+the\s+no\.?\s*of\s+point[’']s\s+line\s+and\s+signal\s+etc\.?\s*as\s+shown\s+in\s+diagram\s+must\s+be\s+quoted\.?/gi,
+        'जब दुर्घटना की सूचना दी जाती है, तो इसका संदर्भ संख्या में दिया जाना चाहिए। बिंदु के लाइन और सिग्नल आदि को उद्धृत किया जाना चाहिए जैसा कि चित्र में दिखाया गया है।');
+    s = s.replace(/\bWhen\s+accident\s+is\s+reported,?\s*reference\s+to\s+the\s+number\s+must\s+be\s+made\.?\s*Line\s+of\s+point\s+and\s+signals\s+etc\.?\s*should\s+be\s+quoted\s+as\s+shown\s+in\s+the\s+diagram\.?/gi,
+        'जब दुर्घटना की सूचना दी जाती है, तो इसका संदर्भ संख्या में दिया जाना चाहिए। बिंदु के लाइन और सिग्नल आदि को उद्धृत किया जाना चाहिए जैसा कि चित्र में दिखाया गया है।');
+
     s = s.replace(/\bSubject:\s*Station Working Rules and Signal Clearance Procedure/gi, 'विषय: स्टेशन कार्य नियम एवं सिग्नल क्लियरेंस प्रक्रिया');
     s = s.replace(/\bSubject:\s*/gi, 'विषय: ');
 
@@ -1020,31 +1148,6 @@ export function translateRailwaySentenceStructure(text) {
     s = s.replace(/\bBusy\b/gi, 'व्यस्त');
     s = s.replace(/\bbusy\b/gi, 'व्यस्त');
 
-    // Railway meaning translations (User Requirement 1)
-    s = s.replace(/\bConspicuously\b/gi, 'प्रमुखता से');
-    s = s.replace(/\bconspicuously\b/gi, 'प्रमुखता से');
-    s = s.replace(/\bConspicuous\b/gi, 'प्रमुख');
-    s = s.replace(/\bconspicuous\b/gi, 'प्रमुख');
-    s = s.replace(/\bIndependent\b/gi, 'स्वतंत्र');
-    s = s.replace(/\bindependent\b/gi, 'स्वतंत्र');
-    s = s.replace(/\bIndependently\b/gi, 'स्वतंत्र रूप से');
-    s = s.replace(/\bindependently\b/gi, 'स्वतंत्र रूप से');
-    s = s.replace(/\bAdjacent\b/gi, 'निकटवर्ती');
-    s = s.replace(/\badjacent\b/gi, 'निकटवर्ती');
-    s = s.replace(/\bAccidents\b/gi, 'दुर्घटनाएं');
-    s = s.replace(/\baccidents\b/gi, 'दुर्घटनाएं');
-    s = s.replace(/\bAccident\b/gi, 'दुर्घटना');
-    s = s.replace(/\baccident\b/gi, 'दुर्घटना');
-    s = s.replace(/\bReporting\b/gi, 'रिपोर्ट करना');
-    s = s.replace(/\breporting\b/gi, 'रिपोर्ट करना');
-    s = s.replace(/\bNecessary\b/gi, 'आवश्यक');
-    s = s.replace(/\bnecessary\b/gi, 'आवश्यक');
-    s = s.replace(/\bNecessarily\b/gi, 'आवश्यक रूप से');
-    s = s.replace(/\bnecessarily\b/gi, 'आवश्यक रूप से');
-    s = s.replace(/\bReferences\b/gi, 'संदर्भ');
-    s = s.replace(/\breferences\b/gi, 'संदर्भ');
-    s = s.replace(/\bReference\b/gi, 'संदर्भ');
-    s = s.replace(/\breference\b/gi, 'संदर्भ');
 
     s = s.replace(/\bThe Station Master must verify that track circuit (.*?) are clear before giving Line Clear\.?/gi,
         'स्टेशन मास्टर को यह सत्यापित करना चाहिए कि लाइन क्लियर देने से पहले ट्रैक सर्किट $1 क्लियर हैं।');
@@ -1767,10 +1870,30 @@ async function processSingleLine(line, options = {}) {
         ["DN", "डाउन"],
         ["must verify that", "यह सत्यापित करना चाहिए कि"],
         ["must verify", "सत्यापित करना चाहिए"],
-        ["must not pass", "पास नहीं करना चाहिए"]
+        ["must not pass", "पास नहीं करना चाहिए"],
+        ["Accident Reporting", "दुर्घटना रिपोर्ट करना"],
+        ["accident reporting", "दुर्घटना रिपोर्ट करना"],
+        ["Reference documents", "संदर्भ दस्तावेज़"],
+        ["reference documents", "संदर्भ दस्तावेज़"],
+        ["Adjacent station", "निकटवर्ती स्टेशन"],
+        ["adjacent station", "निकटवर्ती स्टेशन"],
+        ["Adjacent Station", "निकटवर्ती स्टेशन"],
+        ["I have inspected", "मैंने निरीक्षण किया है"],
+        ["I have verified", "मैंने सत्यापित किया है"],
+        ["I have checked", "मैंने जाँच की है"],
+        ["I hereby certify that", "मैं एतद्द्वारा प्रमाणित करता हूँ कि"],
+        ["I hereby certify", "मैं एतद्द्वारा प्रमाणित करता हूँ"],
+        ["I hereby declare that", "मैं एतद्द्वारा घोषणा करता हूँ कि"],
+        ["I hereby declare", "मैं एतद्द्वारा घोषणा करता हूँ"],
+        ["I am directed to", "मुझे निर्देश दिया गया है कि"],
+        ["I was on duty", "मैं ड्यूटी पर था"],
+        ["I am on duty", "मैं ड्यूटी पर हूँ"],
+        ["I, the undersigned", "मैं, अधोहस्ताक्षरी"]
     ];
 
-    for (const [enPhrase, hiPhrase] of KEY_RAILWAY_PHRASES) {
+    // Sort KEY_RAILWAY_PHRASES by length descending so longer multi-word phrases match BEFORE single words!
+    const sortedKeyPhrases = [...KEY_RAILWAY_PHRASES].sort((a, b) => b[0].length - a[0].length);
+    for (const [enPhrase, hiPhrase] of sortedKeyPhrases) {
         const regex = new RegExp(`(?<=[^a-zA-Z0-9]|^)${escapeRegExp(enPhrase)}(?=[^a-zA-Z0-9]|$)`, 'gi');
         if (regex.test(processed)) {
             processed = processed.replace(regex, () => maskToken(hiPhrase));
@@ -1810,8 +1933,12 @@ async function processSingleLine(line, options = {}) {
         processed = processed.replace(/(?:\(|\[)(?:i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii|xiii|xiv|xv|xvi|xvii|xviii|xix|xx|I|II|III|IV|V|VI|VII|VIII|IX|X)(?:\)|\])/gi, (match) => maskToken(match));
         // Delimited Roman numerals e.g. ii., iii., iv., II., III., IV., ii), iii), iv)
         processed = processed.replace(/(?<=[^a-zA-Z0-9]|^)(?:i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii|xiii|xiv|xv|xvi|xvii|xviii|xix|xx|I|II|III|IV|V|VI|VII|VIII|IX|X)[\.\)\:\-](?=\s|$)/g, (match) => maskToken(match));
-        // Standalone Roman numerals for Chapters, Rules, etc.
-        processed = processed.replace(/\b(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX)\b/g, (match) => maskToken(match));
+        // Standalone multi-letter Roman numerals for Chapters, Rules, etc. (II, III, IV, VI, VII, etc. - never English words)
+        processed = processed.replace(/\b(II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX)\b/g, (match) => maskToken(match));
+        // Single 'I' is ONLY masked as Roman numeral if preceded by structural heading keywords or in a Roman list sequence:
+        processed = processed.replace(/(?<=\b(?:Chapter|अध्याय|Part|भाग|Rule|नियम|Appendix|परिशिष्ट|Standard|मानक|Class|श्रेणी|कक्षा|वर्ग|Grade|ग्रेड|Section|धारा|सेक्शन|Table|सारणी|तालिका|Schedule|अनुसूची|Plate|Annexure|Volume|खंड|Phase|Stage|Type|Item|मद)[- ]+)I\b/gi, (match) => maskToken(match));
+        processed = processed.replace(/\bI(?=\s*[,&/–-]\s*(?:II|III|IV|V|VI)\b)/g, (match) => maskToken(match));
+        processed = processed.replace(/(?<=\b(?:II|III|IV|V|VI)\s*[,&/–-]\s*)I\b/g, (match) => maskToken(match));
     }
 
     // Step 2f: Protect complex decimal/numeric references like 2.5.1, 800.00, 6.02(iv), 5.19(5)(a), 3.61/2(a), 117/2025, 22.07.2026, 22-07-2026, 56A/B
@@ -1874,6 +2001,7 @@ async function processSingleLine(line, options = {}) {
     processed = processed.replace(/एन\.ओ\.टी\.ई\./g, 'टिप्पणी');
     processed = processed.replace(/सुरक्षा\s+निर्देशों\s+का\s+पालन\s+करना\s+होगा/g, 'सुरक्षा निर्देशों का पालन करना चाहिए');
     processed = processed.replace(/\bमुख्य\s+रूप\s+से\b/g, 'प्रमुखता से');
+    processed = processed.replace(/प्रमुखता\s+से\s+को/g, 'प्रमुखता से');
     processed = processed.replace(/\b(?:वगैरह|इत्यादि)\b/g, 'आदि');
     processed = processed.replace(/संकेत,\s*बिंदु\s*आदि/g, 'सिग्नल, पॉइंट आदि।');
     processed = processed.replace(/\bई\.टी\.सी\.\b/g, 'आदि');
@@ -2893,6 +3021,122 @@ export const ENGLISH_MEANING_DICTIONARY = {
 };
 
 /**
+ * Fallback phonetic English to Devanagari transliterator for unknown proper nouns, station names, etc.
+ * Guarantees zero untranslated English Latin letters remain in the output.
+ */
+export function phoneticEnglishToDevanagari(word) {
+    if (!word || typeof word !== 'string') return '';
+    const clean = word.trim();
+    if (!/^[A-Za-z]+$/.test(clean)) return clean;
+    if (clean.length === 1) return ALPHABET_HINDI_MAP[clean.toUpperCase()] || clean;
+
+    const lower = clean.toLowerCase();
+
+    // Specific common name/term vocabulary overrides
+    const COMMON_TRANSLITERATIONS = {
+        'terminal': 'टर्मिनल',
+        'cabin': 'केबिन',
+        'depot': 'डिपो',
+        'shed': 'शेड',
+        'ranchi': 'राँची',
+        'patna': 'पटना',
+        'sharma': 'शर्मा',
+        'singh': 'सिंह',
+        'kumar': 'कुमार',
+        'gupta': 'गुप्ता',
+        'yadav': 'यादव',
+        'prasad': 'प्रसाद',
+        'verma': 'वर्मा',
+        'mishra': 'मिश्रा',
+        'pandey': 'पांडेय',
+        'railway': 'रेलवे',
+        'railways': 'रेलवे',
+        'division': 'मंडल',
+        'divisional': 'मण्डलीय',
+        'section': 'सेक्शन',
+        'circular': 'परिपत्र',
+        'manual': 'नियमावली',
+        'board': 'बोर्ड',
+        'branch': 'शाखा',
+        'headquarters': 'मुख्यालय'
+    };
+    if (COMMON_TRANSLITERATIONS[lower]) return COMMON_TRANSLITERATIONS[lower];
+
+    const digraphs = [
+        ['sch', 'श्क'], ['chr', 'क्र'], ['ph', 'फ'], ['th', 'थ'], ['sh', 'श'],
+        ['ch', 'च'], ['kh', 'ख'], ['gh', 'घ'], ['jh', 'झ'], ['dh', 'ध'],
+        ['bh', 'भ'], ['wh', 'व्ह'], ['ck', 'क'], ['ng', 'ंग'], ['ee', 'ी'],
+        ['oo', 'ू'], ['ai', 'ै'], ['au', 'ौ'], ['ou', 'ौ'], ['ea', 'ी'],
+        ['oa', 'ो'], ['ay', 'े'], ['ey', 'े']
+    ];
+
+    const consonants = {
+        'b': 'ब', 'c': 'क', 'd': 'ड', 'f': 'फ', 'g': 'ग', 'h': 'ह', 'j': 'ज',
+        'k': 'क', 'l': 'ल', 'm': 'म', 'n': 'न', 'p': 'प', 'q': 'क', 'r': 'र',
+        's': 'स', 't': 'ट', 'v': 'व', 'w': 'व', 'x': 'क्स', 'y': 'य', 'z': 'ज़'
+    };
+
+    const vowels = {
+        'a': { initial: 'आ', matra: 'ा' },
+        'e': { initial: 'ए', matra: 'े' },
+        'i': { initial: 'इ', matra: 'ि' },
+        'o': { initial: 'ओ', matra: 'ो' },
+        'u': { initial: 'उ', matra: 'ु' }
+    };
+
+    let dev = '';
+    let i = 0;
+    let prevWasConsonant = false;
+
+    while (i < lower.length) {
+        let matchedDigraph = false;
+        for (const [dig, hi] of digraphs) {
+            if (lower.startsWith(dig, i)) {
+                if (hi === 'ी' || hi === 'ू' || hi === 'ै' || hi === 'ौ' || hi === 'े') {
+                    if (i === 0) {
+                        const initMap = { 'ी': 'ई', 'ू': 'ऊ', 'ै': 'ऐ', 'ौ': 'औ', 'े': 'ए' };
+                        dev += initMap[hi] || hi;
+                    } else if (prevWasConsonant) {
+                        dev += hi;
+                    } else {
+                        dev += hi;
+                    }
+                    prevWasConsonant = false;
+                } else {
+                    dev += hi;
+                    prevWasConsonant = true;
+                }
+                i += dig.length;
+                matchedDigraph = true;
+                break;
+            }
+        }
+        if (matchedDigraph) continue;
+
+        const ch = lower[i];
+        if (vowels[ch]) {
+            if (i === 0 || !prevWasConsonant) {
+                dev += vowels[ch].initial;
+            } else if (ch !== 'a' || (i === lower.length - 1)) {
+                dev += vowels[ch].matra;
+            }
+            prevWasConsonant = false;
+            i++;
+        } else if (consonants[ch]) {
+            dev += consonants[ch];
+            prevWasConsonant = true;
+            i++;
+        } else {
+            dev += ch;
+            prevWasConsonant = false;
+            i++;
+        }
+    }
+
+    return dev || clean;
+}
+
+/**
  * Meaning-based word translation with morphological stem processing.
  * Strictly translates every complete English word into Hindi by meaning (Category A).
  * Category B: Known abbreviations / acronyms -> letter-by-letter phonetic script.
@@ -2919,9 +3163,14 @@ export function translateWordByMeaning(word) {
         return null;
     };
 
-    // 1. Category E Check: Strict Roman numeral
-    if (STRICT_ROMAN_SET.has(clean) || STRICT_ROMAN_SET.has(upper)) {
+    // 1. Category E Check: Multi-letter strict Roman numeral (II, III, IV, VI, VII, etc.)
+    if (upper !== 'I' && (STRICT_ROMAN_SET.has(clean) || STRICT_ROMAN_SET.has(upper))) {
         return clean;
+    }
+
+    // 1a. English pronoun 'I' -> meaning 'मैं'
+    if (clean === 'I' || clean === 'i') {
+        return 'मैं';
     }
 
     // 1b. Ordinary expression etc. / ETC meaning आदि, i.e. meaning अर्थात्
@@ -2934,6 +3183,7 @@ export function translateWordByMeaning(word) {
 
     // 1c. Standalone single technical letter (Category B: A -> ए, B -> बी, T -> टी, G -> जी, etc.)
     if (clean.length === 1 && /[A-Za-z]/.test(clean)) {
+        if (upper === 'I') return 'मैं';
         return ALPHABET_HINDI_MAP[upper] || clean;
     }
 
@@ -2991,6 +3241,18 @@ export function translateWordByMeaning(word) {
         const res = checkDict(stem);
         if (res) return res;
     }
+    // Nouns ending in 'tion' / 'tions'
+    if (lower.endsWith('tion') && lower.length > 5) {
+        const stem = lower.slice(0, -4);
+        const res = checkDict(stem) || checkDict(stem + 'e');
+        if (res) return res;
+    }
+    // Nouns ending in 'ment' / 'ments'
+    if (lower.endsWith('ment') && lower.length > 5) {
+        const stem = lower.slice(0, -4);
+        const res = checkDict(stem);
+        if (res) return res;
+    }
 
     // 4. Category B: Known Railway Abbreviations (e.g. DSTE, CSTE, ECR, SWR, VDU, HASSDAC, MACLS, IBH, SM)
     if (DEFAULT_RAILWAY_ABBREVIATIONS[upper]) {
@@ -3018,6 +3280,10 @@ export function translateWordByMeaning(word) {
     if (clean === upper && /^[A-Z]{1,8}$/.test(clean)) {
         return upper.split('').map(c => ALPHABET_HINDI_MAP[c] || c).join('.') + '.';
     }
+
+    // 7. Category D / English leftover fallback: transliterate phonetic English to Devanagari
+    const transliterated = phoneticEnglishToDevanagari(clean);
+    if (transliterated) return transliterated;
 
     return clean;
 }
@@ -3078,8 +3344,8 @@ export function scanAndResolveEnglishLeftovers(text, options = {}) {
         // 3. Multi-word phrase matching
         const sortedVocabKeys = Object.keys(allVocab).sort((a, b) => b.length - a.length);
         for (const term of sortedVocabKeys) {
-            if (term.length === 1 && (preserveRoman && STRICT_ROMAN_SET.has(term.toUpperCase()) || /^[a-z]$/.test(term))) {
-                continue;
+            if (term.length === 1) {
+                continue; // Single letters (I, A, B, etc.) are handled with context in Step 4
             }
             const regex = new RegExp(`(?<=[^a-zA-Z0-9]|^)${escapeRegExp(term)}(?=[^a-zA-Z0-9]|$)`, 'gi');
             if (regex.test(result)) {
@@ -3094,7 +3360,7 @@ export function scanAndResolveEnglishLeftovers(text, options = {}) {
             const charAfter = offset + match.length < fullStr.length ? fullStr.charAt(offset + match.length) : '';
 
             // Check Category E: Permitted Roman numerals (VI, IV, (iv), (i), (ii), etc.)
-            if (preserveRoman && isPermittedRomanNumeral(match, charBefore, charAfter)) {
+            if (preserveRoman && isPermittedRomanNumeral(match, charBefore, charAfter, fullStr, offset)) {
                 return match;
             }
 
@@ -3139,7 +3405,7 @@ export function scanAndResolveEnglishLeftovers(text, options = {}) {
             const offset = match.index;
             const charBefore = offset > 0 ? line.charAt(offset - 1) : '';
             const charAfter = offset + word.length < line.length ? line.charAt(offset + word.length) : '';
-            if (preserveRoman && isPermittedRomanNumeral(word, charBefore, charAfter)) {
+            if (preserveRoman && isPermittedRomanNumeral(word, charBefore, charAfter, line, offset)) {
                 continue;
             }
             // Allow subclauses in numeric rule references like 5.19(5)(a)
@@ -3212,7 +3478,7 @@ export function checkTranslationQuality(hindiText, options = {}) {
             const charAfter = offset + word.length < trimmed.length ? trimmed.charAt(offset + word.length) : '';
 
             // Allow permitted Roman numerals
-            if (preserveRoman && isPermittedRomanNumeral(word, charBefore, charAfter)) {
+            if (preserveRoman && isPermittedRomanNumeral(word, charBefore, charAfter, trimmed, offset)) {
                 continue;
             }
 
